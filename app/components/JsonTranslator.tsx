@@ -1,45 +1,56 @@
-"use client";
+'use client';
 
 import React from 'react';
 import type { Provider } from '@/lib/types';
 import LanguageSelector from './LanguageSelector';
 
-interface TextTranslatorProps {
+interface Props {
   provider: Provider;
-  inputText: string;
+  inputJson: string;
   onInputChange: (value: string) => void;
   sourceLanguage: string;
   onSourceChange: (value: string) => void;
   targetLanguage: string;
   onTargetChange: (value: string) => void;
-  translatedText: string;
+  translatedJson: string;
   isLoading: boolean;
   error?: string | null;
   onTranslate: () => Promise<void> | void;
   onSwap: () => void;
 }
 
-export default function TextTranslatorView({
+export default function JsonTranslatorView({
   provider,
-  inputText,
+  inputJson,
   onInputChange,
   sourceLanguage,
   onSourceChange,
   targetLanguage,
   onTargetChange,
-  translatedText,
+  translatedJson,
   isLoading,
   error,
   onTranslate,
   onSwap,
-}: TextTranslatorProps) {
+}: Props) {
+  // Validate JSON input
+  const isValidJson = (() => {
+    if (!inputJson.trim()) return true; // Empty is ok
+    try {
+      JSON.parse(inputJson);
+      return true;
+    } catch {
+      return false;
+    }
+  })();
+
   return (
     <div className="space-y-6">
       {/* Language Selection & Swap */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
         <div>
           <LanguageSelector
-            id="source-language"
+            id="source-language-json"
             label="From"
             value={sourceLanguage}
             onChange={onSourceChange}
@@ -72,7 +83,7 @@ export default function TextTranslatorView({
 
         <div>
           <LanguageSelector
-            id="target-language"
+            id="target-language-json"
             label="To"
             value={targetLanguage}
             onChange={onTargetChange}
@@ -82,14 +93,22 @@ export default function TextTranslatorView({
         {/* Translate Button */}
         <button
           onClick={() => onTranslate()}
-          disabled={isLoading || !inputText.trim()}
+          disabled={isLoading || !inputJson.trim() || !isValidJson}
           className="md:col-span-2 px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+          title={!isValidJson ? 'Invalid JSON' : ''}
         >
           {isLoading ? 'Translating...' : 'Translate'}
         </button>
       </div>
 
-      {/* Error Message */}
+      {/* JSON Validation Error */}
+      {inputJson.trim() && !isValidJson && (
+        <div className="p-4 bg-yellow-900/30 border border-yellow-700 text-yellow-300 rounded-lg text-sm">
+          ⚠️ Invalid JSON format
+        </div>
+      )}
+
+      {/* API Error Message */}
       {error && (
         <div className="p-4 bg-red-900/30 border border-red-700 text-red-300 rounded-lg">
           {error}
@@ -100,28 +119,33 @@ export default function TextTranslatorView({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Input */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Text to Translate</label>
+          <label className="block text-sm font-medium text-gray-300 mb-2">JSON Input</label>
           <textarea
-            value={inputText}
+            value={inputJson}
             onChange={(e) => onInputChange(e.target.value)}
-            placeholder="Enter text here..."
-            className="w-full h-48 px-4 py-3 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            placeholder='Paste your JSON here, e.g. {"key": "value"}'
+            className={`w-full h-48 px-4 py-3 bg-gray-700 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none font-mono text-sm ${
+              inputJson.trim() && !isValidJson ? 'border-yellow-600' : 'border-gray-600'
+            } text-white`}
           />
-          <p className="text-xs text-gray-400 mt-2">{inputText.length} characters</p>
+          <p className="text-xs text-gray-400 mt-2">
+            {inputJson.length} characters
+            {isValidJson && inputJson.trim() ? ' ✓' : ''}
+          </p>
         </div>
 
         {/* Output */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Translation</label>
+          <label className="block text-sm font-medium text-gray-300 mb-2">Translated JSON</label>
           <textarea
-            value={translatedText}
+            value={translatedJson}
             readOnly
-            placeholder="Translation will appear here..."
-            className="w-full h-48 px-4 py-3 bg-gray-700 border border-gray-600 text-gray-100 rounded-lg resize-none"
+            placeholder="Translated JSON will appear here..."
+            className="w-full h-48 px-4 py-3 bg-gray-700 border border-gray-600 text-gray-100 rounded-lg resize-none font-mono text-sm"
           />
-          {translatedText && (
+          {translatedJson && (
             <button
-              onClick={() => navigator.clipboard.writeText(translatedText)}
+              onClick={() => navigator.clipboard.writeText(translatedJson)}
               className="text-xs text-blue-400 hover:text-blue-300 mt-2"
             >
               Copy to clipboard
